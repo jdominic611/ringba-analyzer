@@ -27,20 +27,60 @@ export default async function handler(req, res) {
   // Step 1: Download and transcribe with Whisper
   if (recordingUrl && recordingUrl.trim()) {
     try {
-      const audioResp = await fetch(recordingUrl, { signal: AbortSignal.timeout(20000) });
+      // Follow redirects, detect real content type
+      const audioResp = await fetch(recordingUrl, {
+        redirect: 'follow',
+        signal: AbortSignal.timeout(25000)
+      });
+
       if (!audioResp.ok) throw new Error(`Download failed: HTTP ${audioResp.status}`);
 
       const audioBuffer = await audioResp.arrayBuffer();
       const audioBytes = new Uint8Array(audioBuffer);
 
-      const urlPath = recordingUrl.split('?')[0];
-      const ext = urlPath.split('.').pop().toLowerCase() || 'mp3';
-      const mimeType = ext === 'wav' ? 'audio/wav' : 'audio/mpeg';
-      const filename = `audio.${ext}`;
+      // Detect format from Content-Type header first, then URL, then magic bytes
+      const contentType = audioResp.headers.get('content-type') || '';
+      let mimeType = 'audio/mpeg';
+      let filename = 'audio.mp3';
 
+      if (contentType.includes('wav') || contentType.includes('wave')) {
+        mimeType = 'audio/wav'; filename = 'audio.wav';
+      } else if (contentType.includes('mp4') || contentType.includes('m4a')) {
+        mimeType = 'audio/mp4'; filename = 'audio.mp4';
+      } else if (contentType.includes('flac')) {
+        mimeType = 'audio/flac'; filename = 'audio.flac';
+      } else if (contentType.includes('webm')) {
+        mimeType = 'audio/webm'; filename = 'audio.webm';
+      } else if (contentType.includes('ogg')) {
+        mimeType = 'audio/ogg'; filename = 'audio.ogg';
+      } else {
+        // Try magic bytes to detect format
+        const header = audioBytes.slice(0, 12);
+        if (header[0] === 0xFF && (header[1] & 0xE0) === 0xE0) {
+          mimeType = 'audio/mpeg'; filename = 'audio.mp3';
+        } else if (header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46) {
+          mimeType = 'audio/wav'; filename = 'audio.wav';
+        } else if (header[4] === 0x66 && header[5] === 0x74 && header[6] === 0x79 && header[7] === 0x70) {
+          mimeType = 'audio/mp4'; filename = 'audio.mp4';
+        } else if (header[0] === 0x66 && header[1] === 0x4C && header[2] === 0x61 && header[3] === 0x43) {
+          mimeType = 'audio/flac'; filename = 'audio.flac';
+        } else if (header[0] === 0x1A && header[1] === 0x45 && header[2] === 0xDF && header[3] === 0xA3) {
+          mimeType = 'audio/webm'; filename = 'audio.webm';
+        } else {
+          // Fall back to URL extension
+          const urlPath = recordingUrl.split('?')[0].toLowerCase();
+          if (urlPath.endsWith('.wav')) { mimeType = 'audio/wav'; filename = 'audio.wav'; }
+          else if (urlPath.endsWith('.m4a')) { mimeType = 'audio/mp4'; filename = 'audio.mp4'; }
+          else if (urlPath.endsWith('.flac')) { mimeType = 'audio/flac'; filename = 'audio.flac'; }
+          else if (urlPath.endsWith('.webm')) { mimeType = 'audio/webm'; filename = 'audio.webm'; }
+          else if (urlPath.endsWith('.ogg')) { mimeType = 'audio/ogg'; filename = 'audio.ogg'; }
+          else { mimeType = 'audio/mpeg'; filename = 'audio.mp3'; }
+        }
+      }
+
+      // Build multipart form for Whisper
       const boundary = '----WB' + Math.random().toString(36).slice(2);
       const encoder = new TextEncoder();
-
       const partA = encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nen\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`);
       const partB = encoder.encode(`\r\n--${boundary}--\r\n`);
 
@@ -56,7 +96,7 @@ export default async function handler(req, res) {
           'Content-Type': `multipart/form-data; boundary=${boundary}`
         },
         body,
-        signal: AbortSignal.timeout(25000)
+        signal: AbortSignal.timeout(30000)
       });
 
       if (whisperResp.ok) {
@@ -69,7 +109,7 @@ export default async function handler(req, res) {
         transcriptionText = `[${errMsg}]`;
       }
     } catch (audioErr) {
-      const msg = audioErr.name === 'TimeoutError' ? 'Audio download timed out' : (audioErr.message || String(audioErr));
+      const msg = audioErr.name === 'TimeoutError' ? 'Audio timed out' : (audioErr.message || String(audioErr));
       transcriptionText = `[${msg}]`;
     }
   }
@@ -81,8 +121,9 @@ export default async function handler(req, res) {
     const hasRec = !!(recordingUrl && recordingUrl.trim());
     const ringbaTranscription = callData.ringbaTranscription || '';
     const transcriptForPrompt = transcriptionText || ringbaTranscription || '';
+    const transcriptFailed = transcriptionText.startsWith('[') && transcriptionText.endsWith(']');
 
-    const prompt = `You are analyzing a phone call for a call center. Classify it based on the transcript below.
+    const prompt = `You are analyzing a phone call for a call center. Classify it accurately.
 
 Call metadata:
 - Duration: ${dur} (${durSec} seconds)
@@ -90,20 +131,20 @@ Call metadata:
 - Revenue: ${callData.revenue || '0'}
 - End call source: ${callData.endCallSource || 'unknown'}
 
-${transcriptForPrompt
-  ? `Transcript:\n"${transcriptForPrompt}"`
-  : 'No transcript available — no recording or transcription failed.'}
+${!transcriptFailed && transcriptForPrompt ? `Transcript:\n"${transcriptForPrompt}"` : ''}
+${transcriptFailed ? `Transcription failed: ${transcriptionText}\nClassify using metadata only.` : ''}
+${!transcriptForPrompt ? 'No transcript available.' : ''}
 
 Return ONLY valid JSON, no markdown:
 {"classification":"Legitimate"|"Dead Air"|"Static/Noise"|"Short Hang-up"|"No Audio","confidence":"High"|"Medium"|"Low","notes":"one sentence describing what happened","transcript_summary":"brief summary or null"}
 
 Rules:
-- Transcript has real words/sentences = Legitimate
-- Only silence detected = Dead Air  
-- Only noise/static/robocall tones = Static/Noise
-- Connected then immediately dropped (1-5s) = Short Hang-up
-- No recording at all = No Audio
-- Transcription error in brackets = classify by metadata only`;
+- Real words/sentences in transcript = Legitimate
+- Silence only = Dead Air
+- Noise/static/tones only = Static/Noise
+- Connected 1-5s then dropped = Short Hang-up
+- No recording = No Audio
+- Revenue > 0 supports Legitimate`;
 
     const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -131,7 +172,7 @@ Rules:
     });
 
   } catch (err) {
-    const msg = err.name === 'TimeoutError' ? 'Claude request timed out' : (err.message || String(err));
+    const msg = err.name === 'TimeoutError' ? 'Claude timed out' : (err.message || String(err));
     return res.status(500).json({ error: msg });
   }
 }
