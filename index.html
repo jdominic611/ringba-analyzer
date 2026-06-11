@@ -539,7 +539,7 @@ async function attemptLogin() {
     const resp = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-App-Password': pw },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] })
     });
     if (resp.status === 401) {
       document.getElementById('loginError').style.display = 'block';
@@ -718,7 +718,7 @@ Rules: No recording + 0s = No Audio. Real transcription = Legitimate. Revenue > 
     const resp = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-App-Password': sessionPassword },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
     });
     if (resp.status === 401) { logout(); throw new Error('Session expired'); }
     const data = await resp.json();
