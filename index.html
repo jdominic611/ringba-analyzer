@@ -115,12 +115,27 @@
     .log-ok { color: var(--green); } .log-err { color: var(--red); } .log-info { color: var(--accent); } .log-dim { color: var(--text-3); }
 
     /* Badges */
-    .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-    .badge-legit   { background: var(--green-bg); color: var(--green); }
-    .badge-dead    { background: var(--amber-bg); color: var(--amber); }
-    .badge-noise   { background: var(--red-bg); color: var(--red); }
-    .badge-hangup  { background: var(--blue-bg); color: var(--blue); }
-    .badge-noaudio { background: var(--gray-bg); color: var(--text-3); }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space:nowrap; }
+    .badge-legit        { background: var(--green-bg); color: var(--green); }
+    .badge-legit-wrong  { background: rgba(96,165,250,0.12); color: #93c5fd; }
+    .badge-legit-vm     { background: rgba(167,139,250,0.15); color: #c4b5fd; }
+    .badge-dead         { background: var(--amber-bg); color: var(--amber); }
+    .badge-noise        { background: var(--red-bg); color: var(--red); }
+    .badge-hangup       { background: var(--blue-bg); color: var(--blue); }
+    .badge-noaudio      { background: var(--gray-bg); color: var(--text-3); }
+
+    /* Review flag badges */
+    .flag-pay     { background: rgba(74,222,128,0.15); color: var(--green); border: 1px solid rgba(74,222,128,0.3); }
+    .flag-review  { background: rgba(251,191,36,0.12); color: var(--amber); border: 1px solid rgba(251,191,36,0.3); }
+    .flag-dispute { background: rgba(248,113,113,0.12); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+
+    /* Stat cards clickable */
+    .stat { background: var(--bg-3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; cursor: pointer; transition: all 0.15s; user-select: none; }
+    .stat:hover { border-color: var(--border-2); background: var(--bg-4); }
+    .stat.active { border-color: var(--accent); background: var(--accent-bg); }
+    .stat-label { font-size: 11px; color: var(--text-3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 26px; font-weight: 600; }
+    .stat-hint { font-size: 10px; color: var(--text-3); margin-top: 3px; }
 
     /* Table */
     .table-wrap { overflow-x: auto; }
@@ -277,11 +292,22 @@
             <div class="card">
               <div class="card-title">Classification types</div>
               <div style="display:flex;flex-direction:column;gap:9px;font-size:12px">
-                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-legit" style="flex-shrink:0;margin-top:1px">Legitimate</span><span style="color:var(--text-2)">Real conversation detected — actual speech between parties.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-legit" style="flex-shrink:0;margin-top:1px">Real Call</span><span style="color:var(--text-2)">Customer has genuine insurance-related intent — billing, policy, claims.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-legit-wrong" style="flex-shrink:0;margin-top:1px">Wrong Number</span><span style="color:var(--text-2)">Real human, real conversation, but wrong number or unrelated inquiry.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-legit-vm" style="flex-shrink:0;margin-top:1px">Voicemail</span><span style="color:var(--text-2)">Hit voicemail or IVR — may have left a message.</span></div>
                 <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-dead" style="flex-shrink:0;margin-top:1px">Dead Air</span><span style="color:var(--text-2)">Connected but only silence, no speech detected.</span></div>
                 <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-noise" style="flex-shrink:0;margin-top:1px">Static/Noise</span><span style="color:var(--text-2)">Audio present but only background noise or robocall tones.</span></div>
                 <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-hangup" style="flex-shrink:0;margin-top:1px">Short Hang-up</span><span style="color:var(--text-2)">Connected 1–5 seconds then immediately disconnected.</span></div>
                 <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-noaudio" style="flex-shrink:0;margin-top:1px">No Audio</span><span style="color:var(--text-2)">No recording captured — call never connected.</span></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Review flags <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--text-3)">billed calls only</span></div>
+              <div style="display:flex;flex-direction:column;gap:9px;font-size:12px">
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge flag-pay" style="flex-shrink:0;margin-top:1px">✓ Pay</span><span style="color:var(--text-2)">Real customer, genuine intent — worth the charge.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge flag-review" style="flex-shrink:0;margin-top:1px">⚠ Review</span><span style="color:var(--text-2)">Connected and real, but questionable value — listen before deciding.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge flag-dispute" style="flex-shrink:0;margin-top:1px">✕ Dispute</span><span style="color:var(--text-2)">Strong case to not pay — dead air, IVR only, worthless interaction.</span></div>
               </div>
             </div>
           </div>
@@ -290,11 +316,60 @@
 
       <!-- Results -->
       <div class="panel" id="panel-results">
-        <div class="grid-4">
-          <div class="stat"><div class="stat-label">Analyzed</div><div class="stat-value" id="s-total">—</div></div>
-          <div class="stat"><div class="stat-label">Legitimate</div><div class="stat-value" id="s-legit" style="color:var(--green)">—</div></div>
-          <div class="stat"><div class="stat-label">Dead air / noise</div><div class="stat-value" id="s-bad" style="color:var(--red)">—</div></div>
-          <div class="stat"><div class="stat-label">No recording</div><div class="stat-value" id="s-norec" style="color:var(--text-3)">—</div></div>
+        <div style="margin-bottom:8px;font-size:11px;color:var(--text-3)">Click any card to filter · click again to clear</div>
+
+        <div style="margin-bottom:10px">
+          <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Classification</div>
+          <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px">
+            <div class="stat" onclick="toggleFilter('class','all')" id="sf-all">
+              <div class="stat-label">All</div>
+              <div class="stat-value" id="s-total">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('class','Legitimate - Real Call')" id="sf-legit">
+              <div class="stat-label">Real Call</div>
+              <div class="stat-value" id="s-legit" style="color:var(--green)">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('class','Legitimate - Wrong Number')" id="sf-wrong">
+              <div class="stat-label">Wrong #</div>
+              <div class="stat-value" id="s-wrong" style="color:#93c5fd">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('class','Legitimate - Voicemail')" id="sf-vm">
+              <div class="stat-label">Voicemail</div>
+              <div class="stat-value" id="s-vm" style="color:#c4b5fd">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('class','Dead Air')" id="sf-dead">
+              <div class="stat-label">Dead Air</div>
+              <div class="stat-value" id="s-dead" style="color:var(--amber)">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('class','Short Hang-up')" id="sf-hangup">
+              <div class="stat-label">Hang-up</div>
+              <div class="stat-value" id="s-hangup" style="color:var(--blue)">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('class','No Audio')" id="sf-noaudio">
+              <div class="stat-label">No Audio</div>
+              <div class="stat-value" id="s-norec" style="color:var(--text-3)">—</div>
+            </div>
+          </div>
+
+          <div style="font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px">Review flags <span style="font-weight:400;text-transform:none">(billed calls only)</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+            <div class="stat" onclick="toggleFilter('flag','billed')" id="sf-billed">
+              <div class="stat-label">Total billed</div>
+              <div class="stat-value" id="s-billed" style="color:var(--text-2)">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('flag','Pay')" id="sf-pay">
+              <div class="stat-label">✓ Pay</div>
+              <div class="stat-value" id="s-pay" style="color:var(--green)">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('flag','Review')" id="sf-review">
+              <div class="stat-label">⚠ Review</div>
+              <div class="stat-value" id="s-review" style="color:var(--amber)">—</div>
+            </div>
+            <div class="stat" onclick="toggleFilter('flag','Dispute')" id="sf-dispute">
+              <div class="stat-label">✕ Dispute</div>
+              <div class="stat-value" id="s-dispute" style="color:var(--red)">—</div>
+            </div>
+          </div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
           <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
@@ -338,6 +413,7 @@ let sessionPassword = '';
 let parsedRows = [];
 let results = [];
 let isStopped = false;
+let activeFilter = { type: null, value: null };
 
 const panelMeta = {
   setup:   { title: 'Setup', sub: 'Upload your Ringba export and run analysis' },
@@ -562,6 +638,7 @@ async function analyzeCall(row) {
       confidence: data.confidence,
       notes: data.notes,
       transcript_summary: data.transcript_summary,
+      review_flag: data.review_flag || null,
       transcription: data.transcription,
       durSec,
       hasRec: !!recordingUrl
@@ -572,7 +649,81 @@ async function analyzeCall(row) {
 }
 
 function badgeClass(c) {
-  return 'badge badge-' + ({ 'Legitimate': 'legit', 'Dead Air': 'dead', 'Static/Noise': 'noise', 'Short Hang-up': 'hangup', 'No Audio': 'noaudio' }[c] || 'noaudio');
+  if (!c) return 'badge badge-noaudio';
+  if (c === 'Legitimate - Real Call') return 'badge badge-legit';
+  if (c === 'Legitimate - Wrong Number') return 'badge badge-legit-wrong';
+  if (c === 'Legitimate - Voicemail') return 'badge badge-legit-vm';
+  if (c === 'Dead Air') return 'badge badge-dead';
+  if (c === 'Static/Noise') return 'badge badge-noise';
+  if (c === 'Short Hang-up') return 'badge badge-hangup';
+  return 'badge badge-noaudio';
+}
+
+function badgeLabel(c) {
+  if (!c) return 'No Audio';
+  if (c === 'Legitimate - Real Call') return 'Real Call';
+  if (c === 'Legitimate - Wrong Number') return 'Wrong Number';
+  if (c === 'Legitimate - Voicemail') return 'Voicemail';
+  return c;
+}
+
+function flagClass(f) {
+  if (f === 'Pay') return 'badge flag-pay';
+  if (f === 'Review') return 'badge flag-review';
+  if (f === 'Dispute') return 'badge flag-dispute';
+  return '';
+}
+
+function flagLabel(f) {
+  if (f === 'Pay') return '✓ Pay';
+  if (f === 'Review') return '⚠ Review';
+  if (f === 'Dispute') return '✕ Dispute';
+  return '';
+}
+
+function toggleFilter(type, value) {
+  if (activeFilter.type === type && activeFilter.value === value) {
+    activeFilter = { type: null, value: null };
+  } else {
+    activeFilter = { type, value };
+  }
+  updateFilterHighlight();
+  renderTable();
+}
+
+function updateFilterHighlight() {
+  const allStatIds = ['sf-all','sf-legit','sf-wrong','sf-vm','sf-dead','sf-hangup','sf-noaudio','sf-billed','sf-pay','sf-review','sf-dispute'];
+  allStatIds.forEach(id => { const el = document.getElementById(id); if (el) el.classList.remove('active'); });
+
+  if (!activeFilter.type) {
+    document.getElementById('sf-all').classList.add('active');
+    return;
+  }
+  const map = {
+    'all': 'sf-all',
+    'Legitimate - Real Call': 'sf-legit',
+    'Legitimate - Wrong Number': 'sf-wrong',
+    'Legitimate - Voicemail': 'sf-vm',
+    'Dead Air': 'sf-dead',
+    'Short Hang-up': 'sf-hangup',
+    'No Audio': 'sf-noaudio',
+    'billed': 'sf-billed',
+    'Pay': 'sf-pay',
+    'Review': 'sf-review',
+    'Dispute': 'sf-dispute'
+  };
+  const id = map[activeFilter.value];
+  if (id) document.getElementById(id).classList.add('active');
+}
+
+function getFilteredResults() {
+  if (!activeFilter.type) return results;
+  if (activeFilter.type === 'class') return results.filter(r => r.classification === activeFilter.value);
+  if (activeFilter.type === 'flag') {
+    if (activeFilter.value === 'billed') return results.filter(r => r.review_flag);
+    return results.filter(r => r.review_flag === activeFilter.value);
+  }
+  return results;
 }
 
 function toggleTranscript(id) {
@@ -581,33 +732,68 @@ function toggleTranscript(id) {
 }
 
 function renderResults() {
-  const legit = results.filter(r => r.classification === 'Legitimate').length;
-  const bad = results.filter(r => ['Dead Air', 'Static/Noise'].includes(r.classification)).length;
-  const norec = results.filter(r => r.classification === 'No Audio').length;
-  document.getElementById('s-total').textContent = results.length;
-  document.getElementById('s-legit').textContent = legit;
-  document.getElementById('s-bad').textContent = bad;
-  document.getElementById('s-norec').textContent = norec;
+  // Update stat counts
+  const legit    = results.filter(r => r.classification === 'Legitimate - Real Call').length;
+  const wrong    = results.filter(r => r.classification === 'Legitimate - Wrong Number').length;
+  const vm       = results.filter(r => r.classification === 'Legitimate - Voicemail').length;
+  const dead     = results.filter(r => r.classification === 'Dead Air').length;
+  const hangup   = results.filter(r => r.classification === 'Short Hang-up').length;
+  const noaudio  = results.filter(r => !r.classification || r.classification === 'No Audio' || r.classification === 'Static/Noise').length;
+  const billed   = results.filter(r => r.review_flag).length;
+  const pay      = results.filter(r => r.review_flag === 'Pay').length;
+  const review   = results.filter(r => r.review_flag === 'Review').length;
+  const dispute  = results.filter(r => r.review_flag === 'Dispute').length;
+
+  document.getElementById('s-total').textContent   = results.length;
+  document.getElementById('s-legit').textContent   = legit;
+  document.getElementById('s-wrong').textContent   = wrong;
+  document.getElementById('s-vm').textContent      = vm;
+  document.getElementById('s-dead').textContent    = dead;
+  document.getElementById('s-hangup').textContent  = hangup;
+  document.getElementById('s-norec').textContent   = noaudio;
+  document.getElementById('s-billed').textContent  = billed;
+  document.getElementById('s-pay').textContent     = pay;
+  document.getElementById('s-review').textContent  = review;
+  document.getElementById('s-dispute').textContent = dispute;
+
+  updateFilterHighlight();
+  renderTable();
+}
+
+function renderTable() {
+  const filtered = getFilteredResults();
+  const activeLabel = activeFilter.value && activeFilter.value !== 'all'
+    ? `<span style="font-size:12px;color:var(--text-2)">Showing ${filtered.length} of ${results.length} calls</span>`
+    : '';
+
+  if (filtered.length === 0) {
+    document.getElementById('resultsTable').innerHTML = `<div class="empty"><i class="ti ti-filter-off" aria-hidden="true"></i><p>No calls match this filter.</p></div>`;
+    return;
+  }
 
   let html = `<table><thead><tr>
     <th>Date</th><th>Caller ID</th><th>Duration</th><th>Publisher</th>
-    <th>Classification</th><th>Confidence</th><th>What was said</th><th>Notes</th><th>Rev</th><th>Rec</th>
+    <th>Classification</th><th>Flag</th><th>Confidence</th><th>What was said</th><th>Notes</th><th>Rev</th><th>Rec</th>
   </tr></thead><tbody>`;
 
-  results.forEach((r, idx) => {
+  filtered.forEach((r, idx) => {
+    const globalIdx = results.indexOf(r);
     const recLink = r['Recording'] && r['Recording'].trim()
       ? `<a href="${r['Recording']}" target="_blank" style="color:var(--accent)"><i class="ti ti-player-play" aria-hidden="true"></i></a>`
       : `<span style="color:var(--text-3)">—</span>`;
     const rev = r['Revenue'] && r['Revenue'] !== '0'
       ? `<span style="color:var(--green)">$${r['Revenue']}</span>`
       : `<span style="color:var(--text-3)">—</span>`;
+    const flagHtml = r.review_flag
+      ? `<span class="${flagClass(r.review_flag)}">${flagLabel(r.review_flag)}</span>`
+      : `<span style="color:var(--text-3);font-size:11px">—</span>`;
 
     let transcriptCell = '';
-    if (r.transcription && r.transcription.trim()) {
-      const preview = r.transcription.substring(0, 60) + (r.transcription.length > 60 ? '…' : '');
+    if (r.transcription && r.transcription.trim() && !r.transcription.startsWith('[')) {
+      const preview = r.transcription.substring(0, 55) + (r.transcription.length > 55 ? '…' : '');
       transcriptCell = `<div class="transcript-cell">
-        <span class="transcript-quote" onclick="toggleTranscript(${idx})" title="Click to expand">"${preview}"</span>
-        <div class="transcript-full" id="tf-${idx}">${r.transcription}</div>
+        <span class="transcript-quote" onclick="toggleTranscript(${globalIdx})" title="Click to expand">"${preview}"</span>
+        <div class="transcript-full" id="tf-${globalIdx}">${r.transcription}</div>
       </div>`;
     } else if (r.transcript_summary) {
       transcriptCell = `<span class="transcript-text">${r.transcript_summary}</span>`;
@@ -619,11 +805,12 @@ function renderResults() {
       <td class="mono muted" style="font-size:11px;white-space:nowrap">${(r['Call Date']||'').substring(0,10)}</td>
       <td class="mono" style="font-size:11px">${r['Caller ID']||'—'}</td>
       <td class="mono muted" style="font-size:11px">${r['Duration']||'0:00'}</td>
-      <td class="muted" style="font-size:11px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Publisher']||'—'}</td>
-      <td><span class="${badgeClass(r.classification)}">${r.classification}</span></td>
+      <td class="muted" style="font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Publisher']||'—'}</td>
+      <td><span class="${badgeClass(r.classification)}">${badgeLabel(r.classification)}</span></td>
+      <td>${flagHtml}</td>
       <td class="muted" style="font-size:11px">${r.confidence||'—'}</td>
       <td>${transcriptCell}</td>
-      <td style="font-size:11px;color:var(--text-2);max-width:180px;line-height:1.5">${r.notes||'—'}</td>
+      <td style="font-size:11px;color:var(--text-2);max-width:160px;line-height:1.5">${r.notes||'—'}</td>
       <td>${rev}</td>
       <td style="text-align:center">${recLink}</td>
     </tr>`;
@@ -635,10 +822,11 @@ function renderResults() {
 
 function exportCSV() {
   if (!results.length) return;
-  const headers = ['Call Date','Caller ID','Duration','Publisher','Campaign','Classification','Confidence','Notes','Transcript','Revenue','Payout','Has Recording'];
+  const headers = ['Call Date','Caller ID','Duration','Publisher','Campaign','Classification','Review Flag','Confidence','Notes','Transcript','Revenue','Payout','Has Recording'];
   const rows = results.map(r => [
     r['Call Date'], r['Caller ID'], r['Duration'], r['Publisher'], r['Campaign'],
-    r.classification, r.confidence,
+    r.classification, r.review_flag || '',
+    r.confidence,
     `"${(r.notes||'').replace(/"/g,'""')}"`,
     `"${(r.transcription||'').replace(/"/g,'""')}"`,
     r['Revenue'], r['Payout'], r['Recording'] ? 'Yes' : 'No'
