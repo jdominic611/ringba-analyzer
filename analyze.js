@@ -22,138 +22,116 @@ export default async function handler(req, res) {
 
   const { recordingUrl, callData } = req.body;
 
-  try {
-    let transcription = null;
-    let transcriptionText = '';
+  let transcriptionText = '';
 
-    // Step 1: If there's a recording URL, download and transcribe with Whisper
-    if (recordingUrl && recordingUrl.trim()) {
-      try {
-        // Download the audio file
-        const audioResp = await fetch(recordingUrl);
-        if (!audioResp.ok) throw new Error(`Audio download failed: ${audioResp.status}`);
-        
-        const audioBuffer = await audioResp.arrayBuffer();
-        const audioBlob = new Uint8Array(audioBuffer);
-        
-        // Build multipart form for Whisper API
-        const boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
-        
-        // Determine file extension from URL
-        const urlPath = recordingUrl.split('?')[0];
-        const ext = urlPath.split('.').pop().toLowerCase() || 'mp3';
-        const mimeType = ext === 'wav' ? 'audio/wav' : 'audio/mpeg';
-        const filename = `audio.${ext}`;
+  // Step 1: Download and transcribe with Whisper
+  if (recordingUrl && recordingUrl.trim()) {
+    try {
+      const audioResp = await fetch(recordingUrl, { signal: AbortSignal.timeout(20000) });
+      if (!audioResp.ok) throw new Error(`Download failed: HTTP ${audioResp.status}`);
 
-        // Build multipart body manually
-        const encoder = new TextEncoder();
-        const parts = [];
-        
-        parts.push(encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n`));
-        parts.push(encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nen\r\n`));
-        parts.push(encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`));
-        parts.push(audioBlob);
-        parts.push(encoder.encode(`\r\n--${boundary}--\r\n`));
+      const audioBuffer = await audioResp.arrayBuffer();
+      const audioBytes = new Uint8Array(audioBuffer);
 
-        const totalLength = parts.reduce((sum, p) => sum + p.length, 0);
-        const body = new Uint8Array(totalLength);
-        let offset = 0;
-        for (const part of parts) {
-          body.set(part, offset);
-          offset += part.length;
-        }
+      const urlPath = recordingUrl.split('?')[0];
+      const ext = urlPath.split('.').pop().toLowerCase() || 'mp3';
+      const mimeType = ext === 'wav' ? 'audio/wav' : 'audio/mpeg';
+      const filename = `audio.${ext}`;
 
-        const whisperResp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiKey}`,
-            'Content-Type': `multipart/form-data; boundary=${boundary}`
-          },
-          body: body
-        });
+      const boundary = '----WB' + Math.random().toString(36).slice(2);
+      const encoder = new TextEncoder();
 
-        if (whisperResp.ok) {
-          const whisperData = await whisperResp.json();
-          transcription = whisperData.text || '';
-          transcriptionText = transcription.trim();
-        } else {
-          const errData = await whisperResp.json();
-          transcriptionText = `[Transcription failed: ${errData.error?.message || whisperResp.status}]`;
-        }
-      } catch (audioErr) {
-        transcriptionText = `[Audio error: ${audioErr.message}]`;
+      const partA = encoder.encode(`--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nen\r\n--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\nContent-Type: ${mimeType}\r\n\r\n`);
+      const partB = encoder.encode(`\r\n--${boundary}--\r\n`);
+
+      const body = new Uint8Array(partA.length + audioBytes.length + partB.length);
+      body.set(partA, 0);
+      body.set(audioBytes, partA.length);
+      body.set(partB, partA.length + audioBytes.length);
+
+      const whisperResp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': `multipart/form-data; boundary=${boundary}`
+        },
+        body,
+        signal: AbortSignal.timeout(25000)
+      });
+
+      if (whisperResp.ok) {
+        const whisperData = await whisperResp.json();
+        transcriptionText = (whisperData.text || '').trim();
+      } else {
+        const errText = await whisperResp.text();
+        let errMsg = `Whisper error ${whisperResp.status}`;
+        try { errMsg = JSON.parse(errText).error?.message || errMsg; } catch {}
+        transcriptionText = `[${errMsg}]`;
       }
+    } catch (audioErr) {
+      const msg = audioErr.name === 'TimeoutError' ? 'Audio download timed out' : (audioErr.message || String(audioErr));
+      transcriptionText = `[${msg}]`;
     }
+  }
 
-    // Step 2: Send to Claude for classification
+  // Step 2: Claude classification
+  try {
     const dur = callData.duration || '0:00';
     const durSec = callData.durSec || 0;
     const hasRec = !!(recordingUrl && recordingUrl.trim());
     const ringbaTranscription = callData.ringbaTranscription || '';
+    const transcriptForPrompt = transcriptionText || ringbaTranscription || '';
 
-    const transcriptForAnalysis = transcriptionText || ringbaTranscription || '';
-
-    const prompt = `You are analyzing a phone call recording for a call center. Classify this call accurately based on the actual transcription provided.
+    const prompt = `You are analyzing a phone call for a call center. Classify it based on the transcript below.
 
 Call metadata:
 - Duration: ${dur} (${durSec} seconds)
 - Has recording: ${hasRec}
-- Revenue generated: ${callData.revenue || '0'}
+- Revenue: ${callData.revenue || '0'}
 - End call source: ${callData.endCallSource || 'unknown'}
-- Time to connect: ${callData.timeToConnect || 'unknown'}
 
-${transcriptionText ? `Whisper transcription of actual audio:
-"${transcriptionText}"` : ''}
-${ringbaTranscription && !transcriptionText ? `Ringba transcription:
-"${ringbaTranscription}"` : ''}
-${!transcriptForAnalysis ? 'No transcription available.' : ''}
+${transcriptForPrompt
+  ? `Transcript:\n"${transcriptForPrompt}"`
+  : 'No transcript available — no recording or transcription failed.'}
 
-Classify this call. Return ONLY valid JSON, no markdown, no explanation:
-{
-  "classification": "Legitimate" | "Dead Air" | "Static/Noise" | "Short Hang-up" | "No Audio",
-  "confidence": "High" | "Medium" | "Low",
-  "notes": "one clear sentence describing what actually happened on this call",
-  "transcript_summary": "brief summary of what was said, or null if no audio"
-}
+Return ONLY valid JSON, no markdown:
+{"classification":"Legitimate"|"Dead Air"|"Static/Noise"|"Short Hang-up"|"No Audio","confidence":"High"|"Medium"|"Low","notes":"one sentence describing what happened","transcript_summary":"brief summary or null"}
 
-Classification rules:
-- "Legitimate": Real conversation between two people, even if brief
-- "Dead Air": Connected but only silence, no speech detected
-- "Static/Noise": Connected but only background noise, static, robocall tones, or unintelligible sounds
-- "Short Hang-up": Someone connected for 1-5 seconds then immediately hung up
-- "No Audio": No recording URL or completely empty/failed audio
-- If transcription has real words and sentences = almost certainly Legitimate
-- Revenue > 0 supports Legitimate but transcription content takes priority`;
+Rules:
+- Transcript has real words/sentences = Legitimate
+- Only silence detected = Dead Air  
+- Only noise/static/robocall tones = Static/Noise
+- Connected then immediately dropped (1-5s) = Short Hang-up
+- No recording at all = No Audio
+- Transcription error in brackets = classify by metadata only`;
 
     const claudeResp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': claudeKey,
-        'anthropic-version': '2023-06-01'
-      },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': claudeKey, 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: 'claude-haiku-4-5',
         max_tokens: 400,
         messages: [{ role: 'user', content: prompt }]
-      })
+      }),
+      signal: AbortSignal.timeout(15000)
     });
 
     const claudeData = await claudeResp.json();
-    if (claudeData.error) throw new Error(claudeData.error.message);
+    if (claudeData.error) throw new Error(claudeData.error.message || JSON.stringify(claudeData.error));
 
-    const text = claudeData.content[0].text.trim().replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(text);
+    const rawText = claudeData.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(rawText);
 
     return res.status(200).json({
       classification: parsed.classification,
       confidence: parsed.confidence,
       notes: parsed.notes,
-      transcript_summary: parsed.transcript_summary,
+      transcript_summary: parsed.transcript_summary || null,
       transcription: transcriptionText || null
     });
 
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    const msg = err.name === 'TimeoutError' ? 'Claude request timed out' : (err.message || String(err));
+    return res.status(500).json({ error: msg });
   }
 }
