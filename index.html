@@ -260,6 +260,9 @@
                 <button class="btn btn-primary" id="runBtn" onclick="startAnalysis()" disabled>
                   <i class="ti ti-player-play" aria-hidden="true"></i> Run analysis
                 </button>
+                <button class="btn" id="stopBtn" onclick="stopAnalysis()" style="display:none;border-color:var(--red);color:var(--red)">
+                  <i class="ti ti-player-stop" aria-hidden="true"></i> Stop
+                </button>
                 <span id="csvSummary" style="font-size:12px;color:var(--text-2)"></span>
               </div>
               <div id="progressWrap" style="display:none">
@@ -334,6 +337,7 @@
 let sessionPassword = '';
 let parsedRows = [];
 let results = [];
+let isStopped = false;
 
 const panelMeta = {
   setup:   { title: 'Setup', sub: 'Upload your Ringba export and run analysis' },
@@ -471,13 +475,20 @@ async function startAnalysis() {
   if (toAnalyze.length === 0) { alert('No sub-1-minute calls found.'); return; }
 
   document.getElementById('progressWrap').style.display = 'block';
-  document.getElementById('runBtn').disabled = true;
+  document.getElementById('runBtn').style.display = 'none';
+  document.getElementById('stopBtn').style.display = 'inline-flex';
+  isStopped = false;
   results = [];
 
   const withRec = toAnalyze.filter(r => r['Recording'] && r['Recording'].trim()).length;
   log(`${toAnalyze.length} sub-1-min calls found · ${withRec} have recordings to transcribe`, 'info');
 
   for (let i = 0; i < toAnalyze.length; i++) {
+    if (isStopped) {
+      log(`Stopped by user after ${i} calls.`, 'info');
+      break;
+    }
+
     const row = toAnalyze[i];
     const pct = Math.round(((i + 1) / toAnalyze.length) * 100);
     const caller = row['Caller ID'] || 'unknown';
@@ -488,24 +499,35 @@ async function startAnalysis() {
     const result = await analyzeCall(row);
     results.push(result);
 
-    if (result.transcription) {
+    if (result.transcription && !result.transcription.startsWith('[')) {
       log(`✓ Transcribed: "${result.transcription.substring(0, 60)}${result.transcription.length > 60 ? '…' : ''}"`, 'ok');
     }
     log(`→ ${result.classification} (${result.confidence}) — ${result.notes}`, 'ok');
   }
 
-  setProgress(100, `Complete — ${results.length} calls analyzed`);
-  log('All done!', 'ok');
+  const stoppedEarly = isStopped && results.length < toAnalyze.length;
+  setProgress(100, stoppedEarly ? `Stopped — ${results.length} of ${toAnalyze.length} calls analyzed` : `Complete — ${results.length} calls analyzed`);
+  if (!stoppedEarly) log('All done!', 'ok');
 
-  document.getElementById('resultsBadge').textContent = results.length;
-  document.getElementById('resultsBadge').style.display = 'inline-block';
-  renderResults();
+  document.getElementById('stopBtn').style.display = 'none';
+  document.getElementById('runBtn').style.display = 'inline-flex';
+  document.getElementById('runBtn').disabled = false;
 
-  const sheetId = document.getElementById('sheetId').value.trim();
-  const token = document.getElementById('sheetToken').value.trim();
-  if (sheetId && token) document.getElementById('sheetsBtn').style.display = 'inline-flex';
+  if (results.length > 0) {
+    document.getElementById('resultsBadge').textContent = results.length;
+    document.getElementById('resultsBadge').style.display = 'inline-block';
+    renderResults();
+    const sheetId = document.getElementById('sheetId').value.trim();
+    const token = document.getElementById('sheetToken').value.trim();
+    if (sheetId && token) document.getElementById('sheetsBtn').style.display = 'inline-flex';
+    document.getElementById('nav-results').click();
+  }
+}
 
-  document.getElementById('nav-results').click();
+function stopAnalysis() {
+  isStopped = true;
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('stopBtn').innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Stopping…';
 }
 
 async function analyzeCall(row) {
