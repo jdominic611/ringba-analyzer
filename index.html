@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ringba Call Analyzer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --bg-2: #111111;
+      --bg-3: #1a1a1a;
+      --bg-4: #222222;
+      --border: rgba(255,255,255,0.08);
+      --border-2: rgba(255,255,255,0.14);
+      --text: #f0f0f0;
+      --text-2: #999;
+      --text-3: #555;
+      --accent: #7c6fff;
+      --accent-bg: rgba(124,111,255,0.12);
+      --green: #4ade80;
+      --green-bg: rgba(74,222,128,0.1);
+      --red: #f87171;
+      --red-bg: rgba(248,113,113,0.1);
+      --amber: #fbbf24;
+      --amber-bg: rgba(251,191,36,0.1);
+      --blue: #60a5fa;
+      --blue-bg: rgba(96,165,250,0.1);
+      --gray-bg: rgba(255,255,255,0.05);
+      --radius: 10px;
+      --radius-sm: 6px;
+      --font: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+      --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Login Screen ── */
+    #loginScreen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-box {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+    .login-icon {
+      width: 52px; height: 52px;
+      background: var(--accent);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: #fff;
+      margin: 0 auto 20px;
+    }
+    .login-title { font-size: 20px; font-weight: 600; margin-bottom: 6px; }
+    .login-sub { font-size: 13px; color: var(--text-2); margin-bottom: 28px; }
+    .login-field { margin-bottom: 14px; text-align: left; }
+    .login-field label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
+    .login-field input {
+      width: 100%; padding: 10px 14px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: var(--font); font-size: 14px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .login-field input:focus { border-color: var(--accent); }
+    .login-field input::placeholder { color: var(--text-3); }
+    .login-error {
+      background: var(--red-bg); border: 1px solid rgba(248,113,113,0.2);
+      border-radius: var(--radius-sm); padding: 8px 12px;
+      font-size: 12px; color: var(--red); margin-bottom: 14px;
+      display: none;
+    }
+    .login-footer { font-size: 11px; color: var(--text-3); margin-top: 20px; }
+
+    /* ── App Shell ── */
+    #appShell { display: none; }
+    .shell { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 220px; min-height: 100vh;
+      background: var(--bg-2);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 20px 20px 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo-mark { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: var(--accent); border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: #fff;
+    }
+    .logo-text { font-size: 15px; font-weight: 600; }
+    .logo-sub { font-size: 11px; color: var(--text-3); margin-top: 1px; }
+
+    .sidebar-nav { padding: 12px 10px; flex: 1; }
+    .nav-label {
+      font-size: 10px; font-weight: 600; color: var(--text-3);
+      letter-spacing: 0.08em; text-transform: uppercase;
+      padding: 8px 10px 4px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 10px; border-radius: var(--radius-sm);
+      cursor: pointer; color: var(--text-2); font-size: 13px;
+      transition: all 0.15s; border: none; background: none;
+      width: 100%; text-align: left; font-family: var(--font);
+    }
+    .nav-item:hover { color: var(--text); background: var(--bg-3); }
+    .nav-item.active { color: var(--text); background: var(--bg-4); font-weight: 500; }
+    .nav-item i { font-size: 16px; flex-shrink: 0; }
+    .nav-badge {
+      margin-left: auto; background: var(--accent-bg); color: var(--accent);
+      font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 20px;
+    }
+
+    .sidebar-footer {
+      padding: 14px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--text-3);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .logout-btn {
+      background: none; border: none; color: var(--text-3);
+      cursor: pointer; font-size: 11px; font-family: var(--font);
+      display: flex; align-items: center; gap: 4px;
+      padding: 0; transition: color 0.15s;
+    }
+    .logout-btn:hover { color: var(--red); }
+
+    .main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+    .topbar {
+      height: 56px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; padding: 0 28px; gap: 12px;
+      background: var(--bg);
+    }
+    .topbar-title { font-size: 15px; font-weight: 500; flex: 1; }
+    .topbar-sub { font-size: 12px; color: var(--text-3); }
+
+    .content { padding: 28px; flex: 1; }
+
+    /* ── Panels ── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 20px;
+    }
+    .card-title {
+      font-size: 12px; font-weight: 600; color: var(--text-2);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px;
+    }
+
+    /* ── Grid ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
+
+    /* ── Upload ── */
+    .upload-zone {
+      border: 1.5px dashed var(--border-2); border-radius: var(--radius);
+      padding: 36px 20px; text-align: center; cursor: pointer;
+      transition: all 0.15s; background: var(--bg-3);
+    }
+    .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-bg); }
+    .upload-zone.loaded { border-color: rgba(74,222,128,0.4); background: var(--green-bg); }
+    .upload-zone i { font-size: 36px; color: var(--text-3); margin-bottom: 10px; display: block; }
+    .upload-zone.loaded i { color: var(--green); }
+    .upload-zone p { font-size: 14px; color: var(--text-2); }
+    .upload-zone span { font-size: 12px; color: var(--text-3); }
+    #fileInput { display: none; }
+
+    /* ── Fields ── */
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 6px; font-weight: 500; }
+    .field input {
+      width: 100%; padding: 9px 12px;
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); color: var(--text);
+      font-family: var(--font); font-size: 13px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .field input::placeholder { color: var(--text-3); }
+    .helper { font-size: 11px; color: var(--text-3); margin-top: 5px; line-height: 1.5; }
+
+    /* ── Info box ── */
+    .info-box {
+      background: var(--accent-bg); border: 1px solid rgba(124,111,255,0.2);
+      border-radius: var(--radius-sm); padding: 10px 14px;
+      font-size: 12px; color: var(--text-2); line-height: 1.6;
+    }
+    .info-box a { color: var(--accent); text-decoration: none; }
+    .info-box a:hover { text-decoration: underline; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 9px 16px; border-radius: var(--radius-sm);
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: var(--font); transition: all 0.15s;
+      border: 1px solid var(--border-2); background: var(--bg-3); color: var(--text);
+    }
+    .btn:hover { background: var(--bg-4); border-color: rgba(255,255,255,0.2); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #6b5ef0; border-color: #6b5ef0; }
+    .btn-full { width: 100%; justify-content: center; padding: 11px 16px; font-size: 14px; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+
+    /* ── Stats ── */
+    .stat {
+      background: var(--bg-3); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px;
+    }
+    .stat-label { font-size: 11px; color: var(--text-3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 26px; font-weight: 600; }
+
+    /* ── Progress ── */
+    .progress-wrap { margin: 20px 0 0; }
+    .progress-bg { height: 4px; background: var(--bg-4); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+    .progress-label { font-size: 12px; color: var(--text-2); margin-top: 7px; }
+
+    /* ── Log ── */
+    .log {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px;
+      height: 150px; overflow-y: auto;
+      font-size: 11px; font-family: var(--mono); line-height: 1.8; margin-top: 12px;
+    }
+    .log-entry { display: block; }
+    .log-ok { color: var(--green); }
+    .log-err { color: var(--red); }
+    .log-info { color: var(--accent); }
+    .log-dim { color: var(--text-3); }
+
+    /* ── Badges ── */
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge-legit   { background: var(--green-bg); color: var(--green); }
+    .badge-dead    { background: var(--amber-bg); color: var(--amber); }
+    .badge-noise   { background: var(--red-bg); color: var(--red); }
+    .badge-hangup  { background: var(--blue-bg); color: var(--blue); }
+    .badge-noaudio { background: var(--gray-bg); color: var(--text-3); }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      text-align: left; padding: 10px 12px;
+      font-size: 10px; font-weight: 600; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      border-bottom: 1px solid var(--border); white-space: nowrap;
+    }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--bg-3); }
+    .mono { font-family: var(--mono); }
+    .muted { color: var(--text-2); }
+    .notes-cell { color: var(--text-2); max-width: 200px; line-height: 1.5; }
+
+    /* ── Empty ── */
+    .empty { text-align: center; padding: 48px 20px; color: var(--text-3); }
+    .empty i { font-size: 44px; display: block; margin-bottom: 12px; }
+    .empty p { font-size: 13px; }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--bg-4); border-radius: 3px; }
+
+    @media (max-width: 800px) {
+      .sidebar { display: none; }
+      .grid-2, .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-icon"><i class="ti ti-phone-call" aria-hidden="true"></i></div>
+    <div class="login-title">Call Analyzer</div>
+    <div class="login-sub">Enter your team password to continue</div>
+
+    <div class="login-error" id="loginError">Incorrect password — try again.</div>
+
+    <div class="login-field">
+      <label>Team password</label>
+      <input type="password" id="passwordInput" placeholder="••••••••••"
+        autocomplete="current-password"
+        onkeydown="if(event.key==='Enter')attemptLogin()">
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="attemptLogin()">
+      <i class="ti ti-arrow-right" aria-hidden="true"></i> Sign in
+    </button>
+
+    <div class="login-footer">Ringba Call Analyzer · Internal tool</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════ -->
+<div id="appShell">
+<div class="shell">
+
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon"><i class="ti ti-phone-call" aria-hidden="true"></i></div>
+        <div>
+          <div class="logo-text">Call Analyzer</div>
+          <div class="logo-sub">Ringba · AI powered</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-label">Workflow</div>
+      <button class="nav-item active" onclick="switchNav(this,'setup')">
+        <i class="ti ti-settings" aria-hidden="true"></i> Setup
+      </button>
+      <button class="nav-item" onclick="switchNav(this,'results')" id="nav-results">
+        <i class="ti ti-table" aria-hidden="true"></i> Results
+        <span class="nav-badge" id="resultsBadge" style="display:none">0</span>
+      </button>
+      <div class="nav-label" style="margin-top:12px">Info</div>
+      <button class="nav-item" onclick="switchNav(this,'guide')">
+        <i class="ti ti-book" aria-hidden="true"></i> How it works
+      </button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span>Internal tool · 2026</span>
+      <button class="logout-btn" onclick="logout()">
+        <i class="ti ti-logout" aria-hidden="true"></i> Sign out
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title" id="topbarTitle">Setup</div>
+        <div class="topbar-sub" id="topbarSub">Upload your Ringba export and run analysis</div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ── Setup ── -->
+      <div class="panel active" id="panel-setup">
+        <div class="grid-2" style="align-items:start">
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">1 — Ringba CSV export</div>
+              <div class="upload-zone" id="dropZone"
+                onclick="document.getElementById('fileInput').click()"
+                ondragover="handleDrag(event,true)"
+                ondragleave="handleDrag(event,false)"
+                ondrop="handleDrop(event)">
+                <i class="ti ti-file-spreadsheet" id="uploadIcon" aria-hidden="true"></i>
+                <p id="uploadLabel">Drop your Ringba export here</p>
+                <span id="uploadSub">or click to browse · .csv only</span>
+              </div>
+              <input type="file" id="fileInput" accept=".csv" onchange="handleFile(this.files[0])">
+            </div>
+
+            <div class="card">
+              <div class="card-title">2 — Google Sheets export <span style="font-weight:400;text-transform:none;font-size:11px;color:var(--text-3)">(optional)</span></div>
+              <div class="field">
+                <label>Spreadsheet ID</label>
+                <input type="text" id="sheetId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms">
+                <div class="helper">From your Sheet URL: docs.google.com/spreadsheets/d/<strong style="color:var(--text-2)">THIS-PART</strong>/edit</div>
+              </div>
+              <div class="field" style="margin-bottom:10px">
+                <label>OAuth access token</label>
+                <input type="password" id="sheetToken" placeholder="ya29.a0A…" autocomplete="off">
+              </div>
+              <div class="info-box">
+                <strong style="color:var(--text)">Get a token in 30 sec:</strong> Go to
+                <a href="https://developers.google.com/oauthplayground" target="_blank">OAuth Playground ↗</a>,
+                authorize <em>Google Sheets API v4 → spreadsheets</em>, click
+                <em>Exchange authorization code for tokens</em>, and paste the access token here.
+                Tokens expire after ~1 hour.
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="card">
+              <div class="card-title">Run analysis</div>
+              <p style="font-size:13px;color:var(--text-2);margin-bottom:16px;line-height:1.7">
+                Filters all calls under 60 seconds and uses Claude AI to classify each one as
+                <strong style="color:var(--green)">Legitimate</strong>,
+                <strong style="color:var(--amber)">Dead Air</strong>,
+                <strong style="color:var(--red)">Static / Noise</strong>,
+                <strong style="color:var(--blue)">Short Hang-up</strong>, or
+                <strong style="color:var(--text-3)">No Audio</strong>.
+                No API key needed — handled by the server.
+              </p>
+              <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                <button class="btn btn-primary" id="runBtn" onclick="startAnalysis()" disabled>
+                  <i class="ti ti-player-play" aria-hidden="true"></i> Run analysis
+                </button>
+                <span id="csvSummary" style="font-size:12px;color:var(--text-2)"></span>
+              </div>
+
+              <div id="progressWrap" style="display:none">
+                <div class="progress-wrap">
+                  <div class="progress-bg"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+                  <div class="progress-label" id="progressText">Starting…</div>
+                </div>
+                <div class="log" id="logBox"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-title">Classification types</div>
+              <div style="display:flex;flex-direction:column;gap:9px;font-size:12px">
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-legit" style="flex-shrink:0;margin-top:1px">Legitimate</span><span style="color:var(--text-2)">Real caller with transcription or revenue — valid lead.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-dead" style="flex-shrink:0;margin-top:1px">Dead Air</span><span style="color:var(--text-2)">Connected but no voice detected.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-noise" style="flex-shrink:0;margin-top:1px">Static/Noise</span><span style="color:var(--text-2)">Audio present but unrecognizable — robocall or interference.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-hangup" style="flex-shrink:0;margin-top:1px">Short Hang-up</span><span style="color:var(--text-2)">Connected 1–3 seconds then dropped.</span></div>
+                <div style="display:flex;align-items:flex-start;gap:10px"><span class="badge badge-noaudio" style="flex-shrink:0;margin-top:1px">No Audio</span><span style="color:var(--text-2)">No recording captured — call never connected.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Results ── -->
+      <div class="panel" id="panel-results">
+        <div class="grid-4">
+          <div class="stat"><div class="stat-label">Analyzed</div><div class="stat-value" id="s-total">—</div></div>
+          <div class="stat"><div class="stat-label">Legitimate</div><div class="stat-value" id="s-legit" style="color:var(--green)">—</div></div>
+          <div class="stat"><div class="stat-label">Dead air / noise</div><div class="stat-value" id="s-bad" style="color:var(--red)">—</div></div>
+          <div class="stat"><div class="stat-label">No recording</div><div class="stat-value" id="s-norec" style="color:var(--text-3)">—</div></div>
+        </div>
+
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:13px;font-weight:600">Sub-1-minute calls</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn btn-sm" onclick="exportCSV()"><i class="ti ti-download" aria-hidden="true"></i> Export CSV</button>
+              <button class="btn btn-sm" id="sheetsBtn" onclick="pushToSheets()" style="display:none"><i class="ti ti-brand-google" aria-hidden="true"></i> Push to Sheets</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <div id="resultsTable">
+              <div class="empty">
+                <i class="ti ti-phone-off" aria-hidden="true"></i>
+                <p>No results yet — run the analysis first.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Guide ── -->
+      <div class="panel" id="panel-guide">
+        <div style="max-width:580px;display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-title">How it works</div>
+            <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--text-2);line-height:1.7">
+              <div style="display:flex;gap:12px">
+                <div style="width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px">1</div>
+                <div><strong style="color:var(--text)">Export from Ringba</strong> — Go to Call Logs, set your date range, and export as CSV. Make sure the Recording column is included.</div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px">2</div>
+                <div><strong style="color:var(--text)">Upload the CSV</strong> — Drop it in the Setup tab. The app automatically filters to sub-1-minute calls.</div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px">3</div>
+                <div><strong style="color:var(--text)">Run analysis</strong> — Each call's metadata is sent to Claude AI via a secure server. No API key needed from you.</div>
+              </div>
+              <div style="display:flex;gap:12px">
+                <div style="width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;margin-top:2px">4</div>
+                <div><strong style="color:var(--text)">Export results</strong> — Download as CSV or push directly to a Google Sheet with one click.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+let sessionPassword = '';
+let parsedRows = [];
+let results = [];
+
+const panelMeta = {
+  setup:   { title: 'Setup', sub: 'Upload your Ringba export and run analysis' },
+  results: { title: 'Results', sub: 'Classified sub-1-minute calls' },
+  guide:   { title: 'How it works', sub: 'Setup guide and classification reference' }
+};
+
+/* ── Auth ── */
+async function attemptLogin() {
+  const pw = document.getElementById('passwordInput').value.trim();
+  if (!pw) return;
+
+  // Verify password by making a test call to the proxy
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-App-Password': pw },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] })
+    });
+    if (resp.status === 401) {
+      document.getElementById('loginError').style.display = 'block';
+      document.getElementById('passwordInput').value = '';
+      document.getElementById('passwordInput').focus();
+      return;
+    }
+    // Any non-401 response means password was accepted
+    sessionPassword = pw;
+    sessionStorage.setItem('rba_pw', pw);
+    document.getElementById('loginError').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appShell').style.display = 'block';
+  } catch (e) {
+    document.getElementById('loginError').textContent = 'Connection error — is the server running?';
+    document.getElementById('loginError').style.display = 'block';
+  }
+}
+
+function logout() {
+  sessionStorage.removeItem('rba_pw');
+  sessionPassword = '';
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('passwordInput').value = '';
+}
+
+// Auto-restore session within the same browser tab
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('rba_pw');
+  if (saved) {
+    sessionPassword = saved;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appShell').style.display = 'block';
+  }
+  document.getElementById('passwordInput').focus();
+});
+
+/* ── Nav ── */
+function switchNav(btn, panel) {
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + panel).classList.add('active');
+  document.getElementById('topbarTitle').textContent = panelMeta[panel].title;
+  document.getElementById('topbarSub').textContent = panelMeta[panel].sub;
+}
+
+/* ── File handling ── */
+function handleDrag(e, over) { e.preventDefault(); document.getElementById('dropZone').classList.toggle('drag', over); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('dropZone').classList.remove('drag'); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }
+
+function handleFile(f) {
+  if (!f || !f.name.endsWith('.csv')) { alert('Please upload a .csv file'); return; }
+  const r = new FileReader();
+  r.onload = e => {
+    parsedRows = parseCSV(e.target.result);
+    const sub = parsedRows.filter(isSubMinute);
+    document.getElementById('dropZone').classList.add('loaded');
+    document.getElementById('uploadIcon').className = 'ti ti-circle-check';
+    document.getElementById('uploadLabel').textContent = f.name;
+    document.getElementById('uploadSub').textContent = `${parsedRows.length} total rows · ${sub.length} sub-1-min calls`;
+    document.getElementById('csvSummary').textContent = `${sub.length} call${sub.length !== 1 ? 's' : ''} to analyze`;
+    document.getElementById('runBtn').disabled = false;
+  };
+  r.readAsText(f);
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n').filter(l => l.trim());
+  if (lines.length < 2) return [];
+  const headers = splitCSVLine(lines[0]);
+  return lines.slice(1).map(l => {
+    const vals = splitCSVLine(l);
+    const obj = {};
+    headers.forEach((h, i) => obj[h.trim()] = (vals[i] || '').trim());
+    return obj;
+  });
+}
+
+function splitCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') { inQ = !inQ; }
+    else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+function parseDuration(d) {
+  if (!d || d.trim() === '') return null;
+  const p = d.trim().split(':');
+  if (p.length === 3) return parseInt(p[0]) * 3600 + parseInt(p[1]) * 60 + parseInt(p[2]);
+  if (p.length === 2) return parseInt(p[0]) * 60 + parseInt(p[1]);
+  return null;
+}
+
+function isSubMinute(row) {
+  const dur = row['Duration'] || row['Connected Call Length'] || '';
+  const s = parseDuration(dur);
+  return s !== null && s < 60;
+}
+
+/* ── Analysis ── */
+function log(msg, type = 'dim') {
+  const box = document.getElementById('logBox');
+  const s = document.createElement('span');
+  s.className = 'log-entry log-' + type;
+  s.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  box.appendChild(document.createTextNode('\n'));
+  box.appendChild(s);
+  box.scrollTop = box.scrollHeight;
+}
+
+function setProgress(pct, msg) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = msg;
+}
+
+async function startAnalysis() {
+  const toAnalyze = parsedRows.filter(isSubMinute);
+  if (toAnalyze.length === 0) { alert('No sub-1-minute calls found in this CSV.'); return; }
+
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('runBtn').disabled = true;
+  results = [];
+  log(`Found ${toAnalyze.length} sub-1-minute call(s) to analyze`, 'info');
+
+  for (let i = 0; i < toAnalyze.length; i++) {
+    const row = toAnalyze[i];
+    const pct = Math.round(((i + 1) / toAnalyze.length) * 100);
+    setProgress(pct, `Analyzing call ${i + 1} of ${toAnalyze.length} — ${row['Caller ID'] || 'unknown'}`);
+    log(`Processing ${row['Caller ID'] || 'unknown'} (${row['Duration'] || '0:00'})…`);
+    const result = await analyzeCall(row);
+    results.push(result);
+    log(`→ ${result.classification} · ${result.confidence} confidence`, 'ok');
+  }
+
+  setProgress(100, `Complete — ${results.length} calls analyzed`);
+  log('Analysis done!', 'ok');
+  document.getElementById('resultsBadge').textContent = results.length;
+  document.getElementById('resultsBadge').style.display = 'inline-block';
+  renderResults();
+
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const token = document.getElementById('sheetToken').value.trim();
+  if (sheetId && token) document.getElementById('sheetsBtn').style.display = 'inline-flex';
+
+  document.getElementById('nav-results').click();
+}
+
+async function analyzeCall(row) {
+  const dur = row['Duration'] || row['Connected Call Length'] || '0:00';
+  const durSec = parseDuration(dur) || 0;
+  const hasRec = !!(row['Recording'] && row['Recording'].trim());
+  const transcription = (row['Transcription'] || '').trim();
+
+  const prompt = `Analyze this Ringba call and classify it. Return ONLY valid JSON, no markdown.
+
+- Duration: ${dur} (${durSec}s)
+- Has recording: ${hasRec}
+- Transcription: "${transcription}"
+- End call source: ${row['End Call Source'] || ''}
+- Time to connect: ${row['Time To Connect'] || ''}
+- Revenue: ${row['Revenue'] || '0'}
+
+Return exactly:
+{"classification":"Legitimate"|"Dead Air"|"Static/Noise"|"Short Hang-up"|"No Audio","confidence":"High"|"Medium"|"Low","notes":"one sentence"}
+
+Rules: No recording + 0s = No Audio. Real transcription = Legitimate. Revenue > 0 = Legitimate. 1-3s no transcription = Short Hang-up. Has recording + blank transcription = Dead Air or Static/Noise.`;
+
+  try {
+    const resp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-App-Password': sessionPassword },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (resp.status === 401) { logout(); throw new Error('Session expired'); }
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const text = data.content[0].text.trim().replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+    return { ...row, classification: parsed.classification, confidence: parsed.confidence, notes: parsed.notes, durSec, hasRec };
+  } catch (e) {
+    return { ...row, classification: 'No Audio', confidence: 'Low', notes: 'Error: ' + e.message, durSec, hasRec };
+  }
+}
+
+/* ── Render ── */
+function badgeClass(c) {
+  return 'badge badge-' + ({ 'Legitimate': 'legit', 'Dead Air': 'dead', 'Static/Noise': 'noise', 'Short Hang-up': 'hangup', 'No Audio': 'noaudio' }[c] || 'noaudio');
+}
+
+function renderResults() {
+  const legit = results.filter(r => r.classification === 'Legitimate').length;
+  const bad = results.filter(r => ['Dead Air', 'Static/Noise'].includes(r.classification)).length;
+  const norec = results.filter(r => r.classification === 'No Audio').length;
+  document.getElementById('s-total').textContent = results.length;
+  document.getElementById('s-legit').textContent = legit;
+  document.getElementById('s-bad').textContent = bad;
+  document.getElementById('s-norec').textContent = norec;
+
+  let html = `<table><thead><tr>
+    <th>Date</th><th>Caller ID</th><th>Duration</th><th>Publisher</th>
+    <th>Classification</th><th>Confidence</th><th>Notes</th><th>Rev</th><th>Rec</th>
+  </tr></thead><tbody>`;
+  results.forEach(r => {
+    const recLink = r['Recording'] && r['Recording'].trim()
+      ? `<a href="${r['Recording']}" target="_blank" style="color:var(--accent)"><i class="ti ti-player-play" aria-hidden="true"></i></a>`
+      : `<span style="color:var(--text-3)">—</span>`;
+    const rev = r['Revenue'] && r['Revenue'] !== '0'
+      ? `<span style="color:var(--green)">$${r['Revenue']}</span>`
+      : `<span style="color:var(--text-3)">—</span>`;
+    html += `<tr>
+      <td class="mono muted" style="font-size:11px;white-space:nowrap">${(r['Call Date']||'').substring(0,10)}</td>
+      <td class="mono" style="font-size:11px">${r['Caller ID']||'—'}</td>
+      <td class="mono muted" style="font-size:11px">${r['Duration']||'0:00'}</td>
+      <td class="muted" style="font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r['Publisher']||'—'}</td>
+      <td><span class="${badgeClass(r.classification)}">${r.classification}</span></td>
+      <td class="muted" style="font-size:11px">${r.confidence||'—'}</td>
+      <td class="notes-cell" style="font-size:11px">${r.notes||'—'}</td>
+      <td>${rev}</td>
+      <td style="text-align:center">${recLink}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('resultsTable').innerHTML = html;
+}
+
+/* ── Export ── */
+function exportCSV() {
+  if (!results.length) return;
+  const headers = ['Call Date','Caller ID','Duration','Publisher','Campaign','Classification','Confidence','Notes','Revenue','Payout','Has Recording'];
+  const rows = results.map(r => [
+    r['Call Date'], r['Caller ID'], r['Duration'], r['Publisher'], r['Campaign'],
+    r.classification, r.confidence, `"${(r.notes||'').replace(/"/g,'""')}"`,
+    r['Revenue'], r['Payout'], r['Recording'] ? 'Yes' : 'No'
+  ].join(','));
+  const blob = new Blob([headers.join(',') + '\n' + rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ringba_analysis_' + new Date().toISOString().substring(0,10) + '.csv';
+  a.click();
+}
+
+async function pushToSheets() {
+  const sheetId = document.getElementById('sheetId').value.trim();
+  const token = document.getElementById('sheetToken').value.trim();
+  if (!sheetId || !token) { alert('Enter Spreadsheet ID and OAuth token first.'); return; }
+
+  const btn = document.getElementById('sheetsBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader" aria-hidden="true"></i> Pushing…';
+
+  const headers = [['Call Date','Caller ID','Duration','Publisher','Campaign','Classification','Confidence','Notes','Revenue','Payout','Has Recording','Recording URL']];
+  const rows = results.map(r => [
+    r['Call Date']||'', r['Caller ID']||'', r['Duration']||'', r['Publisher']||'', r['Campaign']||'',
+    r.classification, r.confidence, r.notes||'',
+    r['Revenue']||'', r['Payout']||'', r['Recording']?'Yes':'No', r['Recording']||''
+  ]);
+
+  const range = encodeURIComponent('Call Analysis!A1');
+  try {
+    await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}:clear`, {
+      method: 'POST', headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+    });
+    const wr = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?valueInputOption=RAW`, {
+      method: 'PUT',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ values: [...headers, ...rows] })
+    });
+    const data = await wr.json();
+    if (data.error) throw new Error(data.error.message);
+    btn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Pushed!';
+    setTimeout(() => { btn.innerHTML = '<i class="ti ti-brand-google" aria-hidden="true"></i> Push to Sheets'; btn.disabled = false; }, 3000);
+  } catch (e) {
+    alert('Sheets error: ' + e.message);
+    btn.innerHTML = '<i class="ti ti-brand-google" aria-hidden="true"></i> Push to Sheets';
+    btn.disabled = false;
+  }
+}
+</script>
+</body>
+</html>
